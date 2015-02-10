@@ -7,6 +7,7 @@ import os.path
 import readline, glob
 # import subprocess
 import sys
+import pprint
 
 
 def validate_url(url):
@@ -14,15 +15,25 @@ def validate_url(url):
     return True
 
 def rip_it_up(album_url):
+
     response = urllib2.urlopen(album_url)
     if(response.getcode() == 200):
         garbage = response.read()
-        #TODO: doesn't work, too many backtracks might have to grab values individually
-        the_stuff = re.match(garbage, "/(?=var\sTralbumData\s\=\s\{)(.|\s)*(?=\}\;)/")
-        if the_stuff:
-            print the_stuff
-        else:
-            return False
+
+        print "here it is"
+        regex = re.compile("var\sTralbumData\s\=\s\{")
+
+        for m in regex.finditer(garbage):
+            start = m.start()
+
+        i = start
+        end = None
+        while not end:
+            if garbage[i] is ";" and garbage[i-1] is "}":
+                end = i
+            i += 1
+
+        good_stuff = garbage[start:end]
     else:
         return False
     #download this shizz
