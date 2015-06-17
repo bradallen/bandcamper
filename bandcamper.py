@@ -32,8 +32,6 @@ def change_song_details(audio_path, title, artist, art_path, album_name, track_n
     set_genre(id3, genre)
     id3.save()
 
-    print id3;
-
     print 'Track: %s' % id3['TIT2'].text[0]
     print 'Artist: %s' % id3['TPE2'].text[0]
     print 'Album: %s' % id3['TALB'].text[0]
@@ -86,7 +84,7 @@ def set_artist(id3, artist):
 
 def set_track_number(id3, track_number):
     try:
-        id3['TRCK'] = TRCK(encoding = 3, text = track_number)
+        id3.add(TRCK(encoding = 3, text = track_number))
     except error as e:
         print e
         pass
