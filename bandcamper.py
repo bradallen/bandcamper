@@ -9,12 +9,16 @@ import readline, glob
 import sys
 import pprint
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3NoHeaderError
-from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, COMM, USLT, TCOM, TCON, TDRC, error
+from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
 
 
 def validate_url(url):
-    #TODO: validate url, duh
+    try:
+        urllib2.urlopen(url)
+        return True
+    except:
+        print "Crap url: %s" % url
+        return False
     return False
 
 def change_song_details(audio_path, title, artist, art_path, album_name, track_number, year, genre):
