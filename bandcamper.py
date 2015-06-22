@@ -14,8 +14,11 @@ from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, COMM, USLT
 
 
 def validate_url(url):
-    #TODO: validate url, duh
-    return False
+    try:
+        urllib2.urlopen(url)
+        return True
+    except:
+        return False
 
 def change_song_details(audio_path, title, artist, art_path, album_name, track_number, year, genre):
     mp3 = MP3(audio_path, ID3=ID3)
@@ -105,6 +108,38 @@ def set_genre(id3, genre):
         print e
         pass
 
+def download_file(url, path):
+    if not os.path.exists(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+
+    file_name = url.split("/")[-1]
+    u = urllib2.urlopen(url)
+    f = open(path, "wb")
+    meta = u.info()
+    file_size = int(meta.getheaders("Content-Length")[0])
+    print "Downloading: %s Bytes: %s" % (file_name, file_size)
+
+    file_size_dl = 0
+    block_sz = 8192
+    while True:
+        buffer = u.read(block_sz)
+        if not buffer:
+            break
+
+        file_size_dl += len(buffer)
+        f.write(buffer)
+        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
+        status = status + chr(8)*(len(status)+1)
+        print status,
+
+    f.close()
+
+def download(json):
+    path = ("~/Desktop" + json['trackinfo'][0]['title']) #TODO: remove hardcode
+    for t in json['trackinfo']:
+        download_file(t['file']['mp3-128'], "~/Desktop" + "bandcamper-test" + "/" + t['title'])
+
+    return True
 
 def find_the_stuff(garbage):
     regex = re.compile("trackinfo\s\:\s\[")
@@ -122,10 +157,11 @@ def find_the_stuff(garbage):
         track_trash = garbage[start:end]
         less_trash = re.sub(regex, '{\"trackinfo\":[', track_trash)
         good_stuff = re.sub("\}\]", '}]}', less_trash)
+        album_json = json.loads(good_stuff)
     else:
-        good_stuff = None
+        album_json = None
 
-    return good_stuff
+    return album_json
 
 
 def rip_it_up(album_url):
@@ -135,14 +171,12 @@ def rip_it_up(album_url):
         garbage = response.read()
         good_stuff = find_the_stuff(garbage)
         if good_stuff:
-            print "sup"
-            json_stuff = json.loads(good_stuff)
-            pprint.pprint(json_stuff)
+            success = download(good_stuff)
 
     else:
-        return False
+        success = False
     #download this shizz
-    return True
+    return success
 
 if len(sys.argv) > 1:
     album_url = sys.argv[1]
@@ -155,7 +189,7 @@ if len(sys.argv) > 1:
             print "Ah, that's a real ding there"
     else:
         print "What this is?"
-        change_song_details('tests/sample.mp3', 'Side A', 'Kappa Chow', 'tests/albumart.jpg', 'Summer Tour Tape', '1', '2015', 'sackville')
+        # change_song_details('tests/sample.mp3', 'Side A', 'Kappa Chow', 'tests/albumart.jpg', 'Summer Tour Tape', '1', '2015', 'sackville')
 else:
     print "Gimmie something to rip bud!"
 
