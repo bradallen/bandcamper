@@ -14,26 +14,39 @@ def validate_url(url):
     #TODO: validate url, duh
     return True
 
+def find_the_stuff(garbage):
+    regex = re.compile("trackinfo\s\:\s\[")
+
+    for m in regex.finditer(garbage):
+        start = m.start()
+    if start:
+        i = start
+        end = None
+        while not end:
+            if garbage[i] is "," and garbage[i-1] is "]":
+                end = i
+            i += 1
+
+        track_trash = garbage[start:end]
+        less_trash = re.sub(regex, '{\"trackinfo\":[', track_trash)
+        good_stuff = re.sub("\}\]", '}]}', less_trash)
+    else:
+        good_stuff = None
+
+    return good_stuff
+
+
 def rip_it_up(album_url):
 
     response = urllib2.urlopen(album_url)
     if(response.getcode() == 200):
         garbage = response.read()
+        good_stuff = find_the_stuff(garbage)
+        if good_stuff:
+            print "sup"
+            json_stuff = json.loads(good_stuff)
+            pprint.pprint(json_stuff)
 
-        print "here it is"
-        regex = re.compile("var\sTralbumData\s\=\s\{")
-
-        for m in regex.finditer(garbage):
-            start = m.start()
-
-        i = start
-        end = None
-        while not end:
-            if garbage[i] is ";" and garbage[i-1] is "}":
-                end = i
-            i += 1
-
-        good_stuff = garbage[start:end]
     else:
         return False
     #download this shizz
