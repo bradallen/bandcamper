@@ -5,11 +5,11 @@ You know when you're on the bus and there is no WiFi and you don't have enough d
 `python bandcamper.py http://mcparadox.bandcamp.com/album/can-i-schnip-a-feeling`
 
 #### todo
-- Grab tracks from json
-- Save tracks in a folder
-- Update track information
-- Assign track album art
+- [ ] Grab tracks from json
+- [ ] Save tracks in a folder
+- [X] Update track information
+- [X] Assign track album art
 
 #### requirements
-- support artists
-- buy records
+- [ ] support artists
+- [ ] buy records
