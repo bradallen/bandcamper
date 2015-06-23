@@ -106,6 +106,7 @@ def set_genre(id3, genre):
         pass
 
 def download_file(url, path):
+    print url, path
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
 
@@ -132,9 +133,8 @@ def download_file(url, path):
     f.close()
 
 def download(json):
-    path = ("~/Desktop" + json['trackinfo'][0]['title']) #TODO: remove hardcode
     for t in json['trackinfo']:
-        download_file(t['file']['mp3-128'], "~/Desktop" + "bandcamper-test" + "/" + t['title'])
+        download_file(t['file']['mp3-128'], "bandcamper-test/" + t['title'] + ".mp3")
 
     return True
 
