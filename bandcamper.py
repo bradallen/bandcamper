@@ -11,6 +11,14 @@ import pprint
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
 
+class tcolors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    END = '\033[0m'
+    BOLD = '\033[1m'
 
 def validate_url(url):
     try:
@@ -105,44 +113,48 @@ def set_genre(id3, genre):
         print e
         pass
 
-def download_file(url, path):
-    print url, path
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
+def download_file(url, path, title):
+    if not os.path.exists(os.path.expanduser(path)):
+        os.makedirs(os.path.expanduser(path))
 
-    file_name = url.split("/")[-1]
-    u = urllib2.urlopen(url)
-    f = open(path, "wb")
-    meta = u.info()
+    file_name = title + ".mp3"
+    download_url = urllib2.urlopen(url)
+    file = open(os.path.expanduser(path + file_name), "wb")
+    meta = download_url.info()
     file_size = int(meta.getheaders("Content-Length")[0])
-    print "Downloading: %s Bytes: %s" % (file_name, file_size)
+
+    print "\nDownloading: %s Bytes: %s" % (tcolors.BOLD + file_name + tcolors.END, file_size)
 
     file_size_dl = 0
     block_sz = 8192
+
     while True:
-        buffer = u.read(block_sz)
+        buffer = download_url.read(block_sz)
+
         if not buffer:
             break
 
         file_size_dl += len(buffer)
-        f.write(buffer)
+        file.write(buffer)
         status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
         status = status + chr(8)*(len(status)+1)
+
         print status,
 
-    f.close()
+    file.close()
 
-def download(json):
-    for t in json['trackinfo']:
-        download_file(t['file']['mp3-128'], "bandcamper-test/" + t['title'] + ".mp3")
+def download_album(album_json):
+    for t in album_json['trackinfo']:
+        download_file(t['file']['mp3-128'], "~/Downloads/bandcamper-test/", t['title'])
 
     return True
 
-def find_the_stuff(garbage):
+def find_album_json(garbage):
     regex = re.compile("trackinfo\s\:\s\[")
 
     for m in regex.finditer(garbage):
         start = m.start()
+
     if start:
         i = start
         end = None
@@ -162,28 +174,27 @@ def find_the_stuff(garbage):
 
 
 def rip_it_up(album_url):
-
     response = urllib2.urlopen(album_url)
+
     if(response.getcode() == 200):
         garbage = response.read()
-        good_stuff = find_the_stuff(garbage)
-        if good_stuff:
-            success = download(good_stuff)
-
+        album_json = find_album_json(garbage)
+        if album_json:
+            success = download_album(album_json)
     else:
         success = False
-    #download this shizz
+
     return success
 
 if len(sys.argv) > 1:
     album_url = sys.argv[1]
 
     if validate_url(album_url):
-        print "Now ripping " + album_url #TODO: grab album title from json
+        print "\nNow ripping " + tcolors.BLUE + album_url  + tcolors.END #TODO: grab album title from json
         if(rip_it_up(album_url)):
-            print "Aw yiz"
+            print tcolors.GREEN + "\n\nDownload Complete" + tcolors.END
         else:
-            print "Ah, that's a real ding there"
+            print tcolors.RED + "\n\nAh, that's a real ding there" + tcolors.END
     else:
         print "What this is?"
         # change_song_details('tests/sample.mp3', 'Side A', 'Kappa Chow', 'tests/albumart.jpg', 'Summer Tour Tape', '1', '2015', 'sackville')
