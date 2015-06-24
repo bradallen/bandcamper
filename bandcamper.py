@@ -115,15 +115,18 @@ def set_genre(id3, genre):
 
 def download_file(url, path, title):
     if not os.path.exists(os.path.expanduser(path)):
-        os.makedirs(os.path.expanduser(path))
+        try:
+            os.makedirs(os.path.expanduser(path))
+        except error as e:
+            print e
+            pass
 
-    file_name = title + ".mp3"
     download_url = urllib2.urlopen(url)
-    file = open(os.path.expanduser(path + file_name), "wb")
+    file = open(os.path.expanduser(path + title), 'wb')
     meta = download_url.info()
-    file_size = int(meta.getheaders("Content-Length")[0])
+    file_size = int(meta.getheaders('Content-Length')[0])
 
-    print "\nDownloading: %s Bytes: %s" % (tcolors.BOLD + file_name + tcolors.END, file_size)
+    print '\nDownloading: %s Bytes: %s' % (tcolors.BOLD + title + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
 
     file_size_dl = 0
     block_sz = 8192
@@ -136,7 +139,7 @@ def download_file(url, path, title):
 
         file_size_dl += len(buffer)
         file.write(buffer)
-        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
+        status = r'%10d  [%3.2f%%]' % (file_size_dl, file_size_dl * 100. / file_size)
         status = status + chr(8)*(len(status)+1)
 
         print status,
@@ -145,13 +148,30 @@ def download_file(url, path, title):
 
 def download_album(album_json):
     for t in album_json['trackinfo']:
-        download_file(t['file']['mp3-128'], "~/Downloads/bandcamper-test/", t['title'])
+        download_file(t['file']['mp3-128'], '~/Downloads/bandcamper-test/', create_file_name(t['track_num'], t['title']))
 
     return True
 
-def find_album_json(garbage):
-    regex = re.compile("trackinfo\s\:\s\[")
+def create_file_name(track_number, title):
+    return ('0' if track_number < 10 else '') + str(track_number) + ' ' + title + '.mp3'
 
+def find_album_json(garbage):
+    album_json = None
+    artist_regex = re.compile('artist:\s\"')
+    album_regex = re.compile('album_title:\s\"')
+    track_regex = re.compile('trackinfo\s\:\s\[')
+
+    artist_name = re.sub('"', '', re.sub(artist_regex, '', find_json(garbage, artist_regex, ',', '"')))
+    album_name = re.sub('"', '', re.sub(album_regex, '', find_json(garbage, album_regex, ',', '"')))
+    track_json = re.sub('\}\]', '}]}', re.sub(track_regex, '{\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
+
+    if artist_name and album_name and track_json:
+        #todo: add artist name and album name to the json
+        album_json = json.loads(track_json)
+
+    return album_json
+
+def find_json(garbage, regex, nail, coffin):
     for m in regex.finditer(garbage):
         start = m.start()
 
@@ -159,19 +179,13 @@ def find_album_json(garbage):
         i = start
         end = None
         while not end:
-            if garbage[i] is "," and garbage[i-1] is "]":
+            if garbage[i] is nail and garbage[i-1] is coffin:
                 end = i
             i += 1
 
-        track_trash = garbage[start:end]
-        less_trash = re.sub(regex, '{\"trackinfo\":[', track_trash)
-        good_stuff = re.sub("\}\]", '}]}', less_trash)
-        album_json = json.loads(good_stuff)
+        return garbage[start:end]
     else:
-        album_json = None
-
-    return album_json
-
+        return None
 
 def rip_it_up(album_url):
     response = urllib2.urlopen(album_url)
@@ -190,15 +204,15 @@ if len(sys.argv) > 1:
     album_url = sys.argv[1]
 
     if validate_url(album_url):
-        print "\nNow ripping " + tcolors.BLUE + album_url  + tcolors.END #TODO: grab album title from json
+        print '\nNow ripping ' + tcolors.BLUE + album_url  + tcolors.END #TODO: grab album title from json
         if(rip_it_up(album_url)):
-            print tcolors.GREEN + "\n\nDownload Complete" + tcolors.END
+            print tcolors.GREEN + '\n\nDownload Complete' + tcolors.END
         else:
-            print tcolors.RED + "\n\nAh, that's a real ding there" + tcolors.END
+            print tcolors.RED + '\n\nAh, that\'s a real ding there' + tcolors.END
     else:
-        print "What this is?"
+        print 'What this is?'
         # change_song_details('tests/sample.mp3', 'Side A', 'Kappa Chow', 'tests/albumart.jpg', 'Summer Tour Tape', '1', '2015', 'sackville')
 else:
-    print "Gimmie something to rip bud!"
+    print 'Gimmie something to rip bud!'
 
 
