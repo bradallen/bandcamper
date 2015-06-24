@@ -27,26 +27,20 @@ def validate_url(url):
     except:
         return False
 
-def change_song_details(audio_path, title, artist, art_path, album_name, track_number, year, genre):
+def change_song_details(audio_path, title, artist_info, track_num):
     mp3 = MP3(audio_path, ID3=ID3)
     set_tags(mp3)
-    set_album_art(mp3, art_path, 'image/jpg')
+    set_album_art(mp3, artist_info['album_art'], 'image/jpg')
     mp3.save()
 
     id3 = ID3(audio_path)
-    set_album_name(id3, album_name)
+    set_album_name(id3, artist_info['album'])
     set_title(id3, title)
-    set_artist(id3, artist)
-    set_track_number(id3, track_number)
-    set_year(id3, year)
-    set_genre(id3, genre)
+    set_artist(id3, artist_info['artist'])
+    set_track_number(id3, str(track_num))
+    # set_year(id3, artist_info['year'])
+    # set_genre(id3, artist_info['genre'])
     id3.save()
-
-    print 'Track: %s' % id3['TIT2'].text[0]
-    print 'Artist: %s' % id3['TPE2'].text[0]
-    print 'Album: %s' % id3['TALB'].text[0]
-    print 'Year: %s' % id3['TDRC'].text[0]
-    print 'Number: %s' % id3['TRCK'].text[0]
 
 def set_tags(mp3):
     try:
@@ -113,7 +107,7 @@ def set_genre(id3, genre):
         print e
         pass
 
-def download_file(url, path, title):
+def make_directory(path):
     if not os.path.exists(os.path.expanduser(path)):
         try:
             os.makedirs(os.path.expanduser(path))
@@ -121,12 +115,15 @@ def download_file(url, path, title):
             print e
             pass
 
+def download_file(url, path, filename, album_json, title, track_num):
+    make_directory(path)
     download_url = urllib2.urlopen(url)
-    file = open(os.path.expanduser(path + title), 'wb')
+    file_and_path = os.path.expanduser(path + filename)
+    file = open(file_and_path, 'wb')
     meta = download_url.info()
     file_size = int(meta.getheaders('Content-Length')[0])
 
-    print '\nDownloading: %s Size: %s' % (tcolors.BOLD + title + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
+    print '\nDownloading: %s Size: %s' % (tcolors.BOLD + filename + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
 
     file_size_dl = 0
     block_sz = 8192
@@ -135,6 +132,10 @@ def download_file(url, path, title):
         buffer = download_url.read(block_sz)
 
         if not buffer:
+            if track_num:
+                change_song_details(file_and_path, title, album_json, track_num)
+            else:
+                album_json['album_art'] = file_and_path
             break
 
         file_size_dl += len(buffer)
@@ -147,8 +148,12 @@ def download_file(url, path, title):
     file.close()
 
 def download_album(album_json):
+    directory = '~/Downloads/' + re.sub('/', '', album_json['artistinfo'][0]['album']) + '/'
+
+    download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
+
     for t in album_json['trackinfo']:
-        download_file(t['file']['mp3-128'], '~/Downloads/bandcamper-test/', create_file_name(t['track_num'], t['title']))
+        download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title'], t['track_num'])
 
     return True
 
@@ -162,11 +167,13 @@ def find_album_json(garbage):
     artist_name = sanitise_variable(re.compile('artist:\s\"'), garbage)
     album_name = sanitise_variable(re.compile('album_title:\s\"'), garbage)
     album_art_url = sanitise_variable(re.compile('artFullsizeUrl:\s\"'), garbage)
-    track_json = re.sub('\}\]', '}]}', re.sub(track_regex, '{\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
+    track_json = re.sub('\}\]', '}]}', re.sub(track_regex, ',\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
 
     if artist_name and album_name and track_json:
-        #todo: add artist name and album name to the json
-        album_json = json.loads(track_json)
+        extra_json = '{ "artistinfo": [{ "artist":"%s", "album":"%s", "album_art":"%s" }]' % (artist_name, album_name, album_art_url)
+        album_json = json.loads(extra_json + track_json)
+
+        print '\nDownloading: ' + tcolors.BLUE + album_name  + tcolors.END
 
     return album_json
 
@@ -206,14 +213,12 @@ if len(sys.argv) > 1:
     album_url = sys.argv[1]
 
     if validate_url(album_url):
-        print '\nNow ripping ' + tcolors.BLUE + album_url  + tcolors.END #TODO: grab album title from json
         if(rip_it_up(album_url)):
-            print tcolors.GREEN + '\n\nDownload Complete' + tcolors.END
+            print '\n\nDownloading: ' + tcolors.GREEN + 'Completed' + tcolors.END
         else:
             print tcolors.RED + '\n\nAh, that\'s a real ding there' + tcolors.END
     else:
         print 'What this is?'
-        # change_song_details('tests/sample.mp3', 'Side A', 'Kappa Chow', 'tests/albumart.jpg', 'Summer Tour Tape', '1', '2015', 'sackville')
 else:
     print 'Gimmie something to rip bud!'
 
