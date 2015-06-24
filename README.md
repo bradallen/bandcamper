@@ -9,8 +9,8 @@ You know when you're on the bus and there is no WiFi and you don't have enough d
 - [X] Save tracks in a folder
 - [X] Update track information
 - [X] Assign track album art
-- [ ] Find artist and album name in json
-- [ ] Stitch everything together
+- [X] Find artist and album name in json
+- [X] Stitch everything together
 - [ ] Add option to change download path
 
 #### Requirements
