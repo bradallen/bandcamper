@@ -153,7 +153,7 @@ def download_album(album_json):
     download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
 
     for t in album_json['trackinfo']:
-        download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title']), t['track_num'])
+        download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title'], t['track_num'])
 
     return True
 
