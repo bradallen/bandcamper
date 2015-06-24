@@ -126,7 +126,7 @@ def download_file(url, path, title):
     meta = download_url.info()
     file_size = int(meta.getheaders('Content-Length')[0])
 
-    print '\nDownloading: %s Bytes: %s' % (tcolors.BOLD + title + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
+    print '\nDownloading: %s Size: %s' % (tcolors.BOLD + title + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
 
     file_size_dl = 0
     block_sz = 8192
@@ -157,12 +157,11 @@ def create_file_name(track_number, title):
 
 def find_album_json(garbage):
     album_json = None
-    artist_regex = re.compile('artist:\s\"')
-    album_regex = re.compile('album_title:\s\"')
     track_regex = re.compile('trackinfo\s\:\s\[')
 
-    artist_name = re.sub('"', '', re.sub(artist_regex, '', find_json(garbage, artist_regex, ',', '"')))
-    album_name = re.sub('"', '', re.sub(album_regex, '', find_json(garbage, album_regex, ',', '"')))
+    artist_name = sanitise_variable(re.compile('artist:\s\"'), garbage)
+    album_name = sanitise_variable(re.compile('album_title:\s\"'), garbage)
+    album_art_url = sanitise_variable(re.compile('artFullsizeUrl:\s\"'), garbage)
     track_json = re.sub('\}\]', '}]}', re.sub(track_regex, '{\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
 
     if artist_name and album_name and track_json:
@@ -170,6 +169,9 @@ def find_album_json(garbage):
         album_json = json.loads(track_json)
 
     return album_json
+
+def sanitise_variable(regex, garbage):
+    return re.sub('"', '', re.sub(regex, '', find_json(garbage, regex, ',', '"')))
 
 def find_json(garbage, regex, nail, coffin):
     for m in regex.finditer(garbage):
