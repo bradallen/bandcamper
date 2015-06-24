@@ -115,15 +115,15 @@ def make_directory(path):
             print e
             pass
 
-def download_file(url, path, title, album_json, track_num):
+def download_file(url, path, filename, album_json, title, track_num):
     make_directory(path)
     download_url = urllib2.urlopen(url)
-    file_and_path = os.path.expanduser(path + title)
+    file_and_path = os.path.expanduser(path + filename)
     file = open(file_and_path, 'wb')
     meta = download_url.info()
     file_size = int(meta.getheaders('Content-Length')[0])
 
-    print '\nDownloading: %s Size: %s' % (tcolors.BOLD + title + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
+    print '\nDownloading: %s Size: %s' % (tcolors.BOLD + filename + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
 
     file_size_dl = 0
     block_sz = 8192
@@ -150,10 +150,10 @@ def download_file(url, path, title, album_json, track_num):
 def download_album(album_json):
     directory = '~/Downloads/' + re.sub('/', '', album_json['artistinfo'][0]['album']) + '/'
 
-    download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], 0)
+    download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
 
     for t in album_json['trackinfo']:
-        download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['track_num'])
+        download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title']), t['track_num'])
 
     return True
 
