@@ -11,6 +11,8 @@ import pprint
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
 
+move_to_itunes = False
+
 class tcolors:
     HEADER = '\033[95m'
     BLUE = '\033[94m'
@@ -26,6 +28,12 @@ def validate_url(url):
         return True
     except:
         return False
+
+def download_path():
+    if move_to_itunes == True:
+        return '~/Music/iTunes/iTunes Music/Automatically Add to iTunes/'
+    else:
+        return '~/Downloads/'
 
 def change_song_details(audio_path, title, artist_info, track_num):
     mp3 = MP3(audio_path, ID3=ID3)
@@ -46,7 +54,7 @@ def set_tags(mp3):
     try:
         mp3.add_tags()
     except error as e:
-        print e
+        # print e
         pass
 
 def set_album_art(mp3, art_path, image_type):
@@ -148,7 +156,7 @@ def download_file(url, path, filename, album_json, title, track_num):
     file.close()
 
 def download_album(album_json):
-    directory = '~/Downloads/' + re.sub('/', '', album_json['artistinfo'][0]['album']) + '/'
+    directory = download_path() + re.sub('/', '', album_json['artistinfo'][0]['album']) + '/'
 
     download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
 
@@ -158,7 +166,7 @@ def download_album(album_json):
     return True
 
 def create_file_name(track_number, title):
-    return ('0' if track_number < 10 else '') + str(track_number) + ' ' + title + '.mp3'
+    return re.sub('/', '', ('0' if track_number < 10 else '') + str(track_number) + ' ' + title + '.mp3')
 
 def find_album_json(garbage):
     album_json = None
@@ -171,7 +179,7 @@ def find_album_json(garbage):
 
     if artist_name and album_name and track_json:
         extra_json = '{ "artistinfo": [{ "artist":"%s", "album":"%s", "album_art":"%s" }]' % (artist_name, album_name, album_art_url)
-        album_json = json.loads(extra_json + track_json)
+        album_json = json.loads(re.sub('\\\\', '', extra_json + track_json))
 
         print '\nDownloading: ' + tcolors.BLUE + album_name  + tcolors.END
 
@@ -209,7 +217,15 @@ def rip_it_up(album_url):
 
     return success
 
+def check_argvs():
+    for args in sys.argv:
+        if args == '-i':
+            move_to_itunes = True
+            sys.argv[1] = sys.argv[2]
+
 if len(sys.argv) > 1:
+    check_argvs()
+
     album_url = sys.argv[1]
 
     if validate_url(album_url):
