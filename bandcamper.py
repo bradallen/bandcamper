@@ -5,9 +5,10 @@ import json
 import re
 import os.path
 import readline, glob
-# import subprocess
+import string
 import sys
 import pprint
+from urlparse import urlparse
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
 
@@ -23,8 +24,26 @@ class tcolors:
     BOLD = '\033[1m'
 
 def validate_url(url):
+    url = urlparse(url)
+
+    if url.scheme != 'https' and url.scheme !='http':
+        print 'The url needs to start with http or https'
+        return False
+
+    domain = string.split(url.netloc, '.')
+
+    if (domain[0] == 'www' and domain[0] != 'bandcamp') and (domain[0] != 'bandcamp'):
+        print 'This doesn\'t look like a bandcamp url'
+        return False
+
+    domain = string.split(url.path, '/')
+
+    if domain[1] != 'album':
+        print 'You must provide an album'
+        return False
+
     try:
-        urllib2.urlopen(url)
+        urllib2.urlopen(url.geturl())
         return True
     except:
         return False
@@ -134,7 +153,7 @@ def download_file(url, path, filename, album_json, title, track_num):
     print '\nDownloading: %s Size: %s' % (tcolors.BOLD + filename + tcolors.END, tcolors.BOLD + str(round(file_size / float(1000000), 2)) + "MB" + tcolors.END)
 
     file_size_dl = 0
-    block_sz = 8192
+    block_sz = 4096
 
     while True:
         buffer = download_url.read(block_sz)
