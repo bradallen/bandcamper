@@ -8,11 +8,10 @@ import readline, glob
 import string
 import sys
 import pprint
+import shutil
 from urlparse import urlparse
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
-
-move_to_itunes = False
 
 class tcolors:
     HEADER = '\033[95m'
@@ -49,10 +48,10 @@ def validate_url(url):
         return False
 
 def download_path():
-    if move_to_itunes == True:
-        return '~/Music/iTunes/iTunes Music/Automatically Add to iTunes/'
-    else:
-        return '~/Downloads/'
+    # if check_argvs('-i'):
+    #     return '~/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized/'
+    # else:
+    return '~/Downloads/'
 
 def change_song_details(audio_path, title, artist_info, track_num):
     mp3 = MP3(audio_path, ID3=ID3)
@@ -182,6 +181,9 @@ def download_album(album_json):
     for t in album_json['trackinfo']:
         download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title'], t['track_num'])
 
+    if(check_argvs('-i')):
+        copytree(os.path.expanduser(directory), os.path.expanduser('~/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized/' + album_json['artistinfo'][0]['album']))
+
     return True
 
 def create_file_name(track_number, title):
@@ -236,16 +238,35 @@ def rip_it_up(album_url):
 
     return success
 
-def check_argvs():
+def check_argvs(needle):
     for args in sys.argv:
-        if args == '-i':
-            move_to_itunes = True
-            sys.argv[1] = sys.argv[2]
+        if args == needle:
+            return True
+
+    return False
+
+def get_album_url():
+    for args in sys.argv:
+        if 'bandcamp.com' in args:
+            return args
+
+    return False
+
+def copytree(src, dst, symlinks = False, ignore = None):
+    make_directory(dst)
+
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
+
+    shutil.rmtree(src)
 
 if len(sys.argv) > 1:
-    check_argvs()
-
-    album_url = sys.argv[1]
+    album_url = get_album_url()
 
     if validate_url(album_url):
         if(rip_it_up(album_url)):
