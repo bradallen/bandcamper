@@ -18,4 +18,4 @@ You know when you're on the bus and there is no WiFi and you don't have enough d
 - [X] Stitch everything together
 - [X] Validate URL
 - [ ] Add option to change download path
-- [ ] Move straight to iTunes
+- [x] Move straight to iTunes
