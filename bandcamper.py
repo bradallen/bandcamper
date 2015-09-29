@@ -37,8 +37,8 @@ def validate_url(url):
 
     domain = string.split(url.path, '/')
 
-    if domain[1] != 'album':
-        print 'You must provide an album'
+    if domain[1] != 'album' and domain[1] != 'track':
+        print 'You must provide an album or track'
         return False
 
     try:
@@ -191,12 +191,28 @@ def create_file_name(track_number, title):
 
 def find_album_json(garbage):
     album_json = None
-    track_regex = re.compile('trackinfo\s\:\s\[')
-
+    track_regex = re.compile('trackinfo\s\:\s\\s\[')
     artist_name = sanitise_variable(re.compile('artist:\s\"'), garbage)
-    album_name = sanitise_variable(re.compile('album_title:\s\"'), garbage)
+    print 1, artist_name
+
+    try:
+        album_name = sanitise_variable(re.compile('album_title:\s\"'), garbage)
+    except error as e:
+        album_name = ''
+
+    print 2, album_name
+
     album_art_url = sanitise_variable(re.compile('artFullsizeUrl:\s\"'), garbage)
+
+    print 3, album_art_url
+
+    # print '3.0.1', garbage
+    print 3.1, find_json(garbage, track_regex, ',', ']')
+    print 3.2, re.sub(track_regex, ',\"trackinfo\":[', find_json(garbage, track_regex, ',', ']'))
+
     track_json = re.sub('\}\]', '}]}', re.sub(track_regex, ',\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
+
+    print 4, track_json
 
     if artist_name and album_name and track_json:
         extra_json = '{ "artistinfo": [{ "artist":"%s", "album":"%s", "album_art":"%s" }]' % (artist_name, album_name, album_art_url)
@@ -210,8 +226,13 @@ def sanitise_variable(regex, garbage):
     return re.sub('"', '', re.sub(regex, '', find_json(garbage, regex, ',', '"')))
 
 def find_json(garbage, regex, nail, coffin):
+    start = None
+
+    print regex.pattern
+    print garbage
     for m in regex.finditer(garbage):
         start = m.start()
+        print start
 
     if start:
         i = start
@@ -219,11 +240,12 @@ def find_json(garbage, regex, nail, coffin):
         while not end:
             if garbage[i] is nail and garbage[i-1] is coffin:
                 end = i
+                print 6, end
             i += 1
 
         return garbage[start:end]
     else:
-        return None
+        return ''
 
 def rip_it_up(album_url):
     response = urllib2.urlopen(album_url)
@@ -233,6 +255,8 @@ def rip_it_up(album_url):
         album_json = find_album_json(garbage)
         if album_json:
             success = download_album(album_json)
+        else:
+            success = False
     else:
         success = False
 
