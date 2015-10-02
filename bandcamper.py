@@ -13,6 +13,45 @@ from urlparse import urlparse
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
 
+class BC(object):
+    def __init__(self):
+        self._type = 'album'
+        self._artwork = ''
+        self._artist = ''
+        self._album = ''
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+
+    @property
+    def artwork(self):
+        return self._artwork
+
+    @artwork.setter
+    def artwork(self, value):
+        self._artwork = value
+
+    @property
+    def artist(self):
+        return self._artist
+
+    @artist.setter
+    def artist(self, value):
+        self._artist = value
+
+    @property
+    def album(self):
+        return self._album
+
+    @album.setter
+    def album(self, value):
+        self._album = value
+
 class tcolors:
     HEADER = '\033[95m'
     BLUE = '\033[94m'
@@ -37,9 +76,12 @@ def validate_url(url):
 
     domain = string.split(url.path, '/')
 
-    if domain[1] != 'album':
-        print 'You must provide an album'
+    if domain[1] != 'album' and domain[1] != 'track':
+        print 'You must provide an album or track'
         return False
+    else:
+        if domain[1] == 'track':
+            BC.type = 'track'
 
     try:
         urllib2.urlopen(url.geturl())
@@ -48,24 +90,20 @@ def validate_url(url):
         return False
 
 def download_path():
-    # if check_argvs('-i'):
-    #     return '~/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized/'
-    # else:
     return '~/Downloads/'
 
-def change_song_details(audio_path, title, artist_info, track_num):
+def change_song_details(audio_path, title, album_art, track_num):
     mp3 = MP3(audio_path, ID3=ID3)
     set_tags(mp3)
-    set_album_art(mp3, artist_info['album_art'], 'image/jpg')
+    set_album_art(mp3, album_art, 'image/jpg')
     mp3.save()
 
     id3 = ID3(audio_path)
-    set_album_name(id3, artist_info['album'])
+    set_album_name(id3, BC.album)
     set_title(id3, title)
-    set_artist(id3, artist_info['artist'])
+    set_artist(id3, BC.artist)
     set_track_number(id3, str(track_num))
-    # set_year(id3, artist_info['year'])
-    # set_genre(id3, artist_info['genre'])
+
     id3.save()
 
 def set_tags(mp3):
@@ -159,7 +197,7 @@ def download_file(url, path, filename, album_json, title, track_num):
 
         if not buffer:
             if track_num:
-                change_song_details(file_and_path, title, album_json, track_num)
+                change_song_details(file_and_path, title, album_json['album_art'], track_num)
             else:
                 album_json['album_art'] = file_and_path
             break
@@ -174,7 +212,11 @@ def download_file(url, path, filename, album_json, title, track_num):
     file.close()
 
 def download_album(album_json):
-    directory = download_path() + re.sub('/', '', album_json['artistinfo'][0]['album']) + '/'
+    if BC.type == 'album':
+        directory = download_path() + re.sub('/', '', BC.album) + '/'
+    else:
+        directory = download_path() + re.sub('/', '', BC.artist) + '/'
+
 
     download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
 
@@ -191,18 +233,36 @@ def create_file_name(track_number, title):
 
 def find_album_json(garbage):
     album_json = None
-    track_regex = re.compile('trackinfo\s\:\s\[')
+
+    if BC.type == 'track':
+        track_regex = re.compile('trackinfo:\s\[')
+    else:
+        track_regex = re.compile('trackinfo\s\:\s\[')
 
     artist_name = sanitise_variable(re.compile('artist:\s\"'), garbage)
-    album_name = sanitise_variable(re.compile('album_title:\s\"'), garbage)
     album_art_url = sanitise_variable(re.compile('artFullsizeUrl:\s\"'), garbage)
     track_json = re.sub('\}\]', '}]}', re.sub(track_regex, ',\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
 
-    if artist_name and album_name and track_json:
+    try:
+        album_name = sanitise_variable(re.compile('album_title:\s\"'), garbage)
+    except error as e:
+        album_name = ''
+
+    try:
+        BC.artist = artist_name
+        BC.album = album_name
+        BC.artwork = album_art_url
+    except error as e:
+        print e
+
+    if artist_name and track_json:
         extra_json = '{ "artistinfo": [{ "artist":"%s", "album":"%s", "album_art":"%s" }]' % (artist_name, album_name, album_art_url)
         album_json = json.loads(re.sub('\\\\', '', extra_json + track_json))
 
-        print '\nDownloading: ' + tcolors.BLUE + album_name  + tcolors.END
+        if BC.type == 'album':
+            print '\nDownloading: ' + tcolors.BLUE + album_name  + tcolors.END
+        else:
+            print '\nDownloading: ' + tcolors.BLUE + artist_name  + tcolors.END
 
     return album_json
 
@@ -210,6 +270,8 @@ def sanitise_variable(regex, garbage):
     return re.sub('"', '', re.sub(regex, '', find_json(garbage, regex, ',', '"')))
 
 def find_json(garbage, regex, nail, coffin):
+    start = None
+
     for m in regex.finditer(garbage):
         start = m.start()
 
@@ -223,7 +285,7 @@ def find_json(garbage, regex, nail, coffin):
 
         return garbage[start:end]
     else:
-        return None
+        return ''
 
 def rip_it_up(album_url):
     response = urllib2.urlopen(album_url)
@@ -233,6 +295,8 @@ def rip_it_up(album_url):
         album_json = find_album_json(garbage)
         if album_json:
             success = download_album(album_json)
+        else:
+            success = False
     else:
         success = False
 
