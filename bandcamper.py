@@ -179,6 +179,16 @@ def make_directory(path):
             print e
             pass
 
+def validateURL(url):
+    if url[:5] == 'http:' or url[:6] == 'https:':
+        return url
+    else:
+        if url[:2] == '//':
+            return 'https:' + url
+        else:
+            print '\nShoot, the url we found wasn\'t valid'
+            return False
+
 def download_file(url, path, filename, album_json, title, track_num):
     make_directory(path)
     download_url = urllib2.urlopen(url)
@@ -217,11 +227,16 @@ def download_album(album_json):
     else:
         directory = download_path() + re.sub('/', '', BC.artist) + '/'
 
+    aURL = validateURL(album_json['artistinfo'][0]['album_art'])
 
-    download_file(album_json['artistinfo'][0]['album_art'], directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
+    if aURL:
+        download_file(aURL, directory, 'cover.jpg', album_json['artistinfo'][0], '', 0)
 
     for t in album_json['trackinfo']:
-        download_file(t['file']['mp3-128'], directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title'], t['track_num'])
+        tURL = validateURL(t['file']['mp3-128'])
+
+        if tURL:
+            download_file(tURL, directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title'], t['track_num'])
 
     if(check_argvs('-i')):
         copytree(os.path.expanduser(directory), os.path.expanduser('~/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized/' + album_json['artistinfo'][0]['album']))
