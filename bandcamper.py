@@ -12,6 +12,7 @@ import shutil
 from urlparse import urlparse
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, ID3, TALB, TPE1, TPE2, TRCK, TCON, TDRC, error
+import unicodedata
 
 class BC(object):
     def __init__(self):
@@ -42,7 +43,7 @@ class BC(object):
 
     @artist.setter
     def artist(self, value):
-        self._artist = value
+        self._artist = value.decode('utf-8')
 
     @property
     def album(self):
@@ -50,7 +51,7 @@ class BC(object):
 
     @album.setter
     def album(self, value):
-        self._album = value
+        self._album = value.decode('utf-8')
 
 class tcolors:
     HEADER = '\033[95m'
@@ -236,7 +237,7 @@ def download_album(album_json):
         tURL = validateURL(t['file']['mp3-128'])
 
         if tURL:
-            download_file(tURL, directory, create_file_name(t['track_num'], t['title']), album_json['artistinfo'][0], t['title'], t['track_num'])
+            download_file(tURL, directory, create_file_name(t['track_num'], t['title'].decode('utf-8')), album_json['artistinfo'][0], t['title'].decode('utf-8'), t['track_num'])
 
     if(check_argvs('-i')):
         copytree(os.path.expanduser(directory), os.path.expanduser('~/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized/' + album_json['artistinfo'][0]['album']))
@@ -267,12 +268,17 @@ def find_album_json(garbage):
         BC.artist = artist_name
         BC.album = album_name
         BC.artwork = album_art_url
+        print artist_name
+        print album_name
     except error as e:
         print e
 
     if artist_name and track_json:
         extra_json = '{ "artistinfo": [{ "artist":"%s", "album":"%s", "album_art":"%s" }]' % (artist_name, album_name, album_art_url)
-        album_json = json.loads(re.sub('\\\\', '', extra_json + track_json))
+        garb = re.sub('\\\\', '', filter(lambda x: x in string.printable, extra_json) + filter(lambda x: x in string.printable, track_json))
+        album_json = json.loads(garb.decode('utf8'))
+
+
 
         if BC.type == 'album':
             print '\nDownloading: ' + tcolors.BLUE + album_name  + tcolors.END
@@ -282,7 +288,7 @@ def find_album_json(garbage):
     return album_json
 
 def sanitise_variable(regex, garbage):
-    return re.sub('"', '', re.sub(regex, '', find_json(garbage, regex, ',', '"')))
+    return re.sub('"', '', re.sub(regex, '', find_json(garbage, regex, ',', '"'))).decode('utf-8')
 
 def find_json(garbage, regex, nail, coffin):
     start = None
