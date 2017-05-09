@@ -7,7 +7,7 @@ Save a stream.
 #### Requirements
 - Support artists
 - Buy records
-- [Mutagen](https://bitbucket.org/lazka/mutagen/downloads)
+- [Mutagen](https://github.com/quodlibet/mutagen)
 
 #### Todo
 - [ ] Add option to change download path
