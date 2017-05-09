@@ -1,8 +1,8 @@
 # Bandcamper
-You know when you're on the bus and there is no WiFi and you don't have enough data to stream an album on bandcamp? This solves that problem.
+Save a stream.
 
 ### Usage
-`python bandcamper.py http://mcparadox.bandcamp.com/album/can-i-schnip-a-feeling`
+`python bandcamper.py http://bandname.bandcamp.com/album/albumname
 
 #### Requirements
 - Support artists
@@ -11,3 +11,4 @@ You know when you're on the bus and there is no WiFi and you don't have enough d
 
 #### Todo
 - [ ] Add option to change download path
+- [ ] Fix album art download
