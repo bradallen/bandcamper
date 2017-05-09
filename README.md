@@ -2,7 +2,7 @@
 Save a stream.
 
 ### Usage
-`python bandcamper.py http://bandname.bandcamp.com/album/albumname
+`python bandcamper.py http://bandname.bandcamp.com/album/albumname`
 
 #### Requirements
 - Support artists
