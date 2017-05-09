@@ -96,7 +96,8 @@ def download_path():
 def change_song_details(audio_path, title, album_art, track_num):
     mp3 = MP3(audio_path, ID3=ID3)
     set_tags(mp3)
-    set_album_art(mp3, album_art, 'image/jpg')
+    if album_art:
+        set_album_art(mp3, album_art, 'image/jpg')
     mp3.save()
 
     id3 = ID3(audio_path)
@@ -249,12 +250,7 @@ def create_file_name(track_number, title):
 
 def find_album_json(garbage):
     album_json = None
-
-    if BC.type == 'track':
-        track_regex = re.compile('trackinfo:\s\[')
-    else:
-        track_regex = re.compile('trackinfo\s\:\s\[')
-
+    track_regex = re.compile('trackinfo:\s\[')
     artist_name = sanitise_variable(re.compile('artist:\s\"'), garbage)
     album_art_url = sanitise_variable(re.compile('artFullsizeUrl:\s\"'), garbage)
     track_json = re.sub('\}\]', '}]}', re.sub(track_regex, ',\"trackinfo\":[', find_json(garbage, track_regex, ',', ']')))
@@ -277,8 +273,6 @@ def find_album_json(garbage):
         extra_json = '{ "artistinfo": [{ "artist":"%s", "album":"%s", "album_art":"%s" }]' % (artist_name, album_name, album_art_url)
         garb = re.sub('\\\\', '', filter(lambda x: x in string.printable, extra_json) + filter(lambda x: x in string.printable, track_json))
         album_json = json.loads(garb.decode('utf8'))
-
-
 
         if BC.type == 'album':
             print '\nDownloading: ' + tcolors.BLUE + album_name  + tcolors.END
